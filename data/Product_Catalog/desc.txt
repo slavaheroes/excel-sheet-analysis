@@ -1,0 +1,2 @@
+Detailed Products Datasets: https://www.kaggle.com/datasets/sujaykapadnis/products-datasets
+Product Dataset: https://github.com/etano/productner/blob/master/Product%20Dataset.csv 
