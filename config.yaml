@@ -1,26 +1,83 @@
-exp_name: bert_for_sheet_classification
-seed: 42
+exp_name: bert_text_classification
 
 dataset:
-  data_path: dataset.csv 
+  data_path: dataset.csv
   text_column: content
-  label_column: category 
-  categories:
-    - Academic_Research
-    - Project_Management
-    - HR_Records
-    - Financial_Reports
-    - Product_Catalog
-  
-model:
-  pretrained_model_name: bert-base-uncased
-  num_labels: 5
-  hidden_size: 768
-  dropout_rate: 0.3
+  label_column: category
+  categories: ['Academic_Research', 'Project_Management', 'HR_Records', 'Financial_Reports', 'Product_Catalog']
+  max_length: 512
 
-training:
+dataloader:
   batch_size: 5
-  learning_rate: 1e-4
-  num_epochs: 10
-  weight_decay: 0.01
+  num_workers: 4
+  pin_memory: true
+  drop_last: false
 
+model:
+  model_name: bert-base-uncased
+  head:
+    pooling: cls
+    dropout: 0.1
+  params:
+    output_hidden_states: false
+
+optimizer:
+  module: torch.optim
+  type: AdamW
+  params:
+    lr: 0.0001
+    weight_decay: 0.01
+    betas: [0.9, 0.999]
+    eps: 1.0e-8
+
+lr_scheduler:
+  module: transformers
+  type: get_linear_schedule_with_warmup
+  interval: step
+  params:
+    num_warmup_steps: 0
+    num_training_steps: 5000
+
+loss:
+  module: torch.nn
+  type: CrossEntropyLoss
+  params:
+    reduction: mean
+
+callbacks:
+  checkpoint:
+    module: lightning.pytorch.callbacks
+    type: ModelCheckpoint
+    params:
+      dirpath: /workspace/checkpoints/text_classification
+      filename: 'best_{epoch}_{val_f1_macro:.4f}'
+      monitor: val_f1_macro
+      mode: max
+      save_top_k: 1
+      verbose: true
+  lr_monitor:
+    module: lightning.pytorch.callbacks
+    type: LearningRateMonitor
+    params:
+      logging_interval: step
+  early_stopping:
+    module: lightning.pytorch.callbacks.early_stopping
+    type: EarlyStopping
+    params:
+      monitor: val_f1_macro
+      mode: max
+      patience: 10
+      min_delta: 0.0
+
+trainer:
+  module: lightning.pytorch.trainer.trainer
+  type: Trainer
+  params:
+    accelerator: gpu
+    devices: [0]
+    strategy: auto
+    max_epochs: 10
+    accumulate_grad_batches: 1
+    gradient_clip_val: 0
+    gradient_clip_algorithm: norm
+    check_val_every_n_epoch: 1

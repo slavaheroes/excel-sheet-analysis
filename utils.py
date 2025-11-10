@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 import re
+import yaml
+from importlib import import_module
+from addict import Dict
+import lightning as L
 
 import nltk
 from nltk.corpus import stopwords
@@ -11,6 +15,17 @@ nltk.download('punkt_tab')
 nltk.download('punkt')
 nltk.download('stopwords')
 
+def set_seed(seed: int):
+    L.seed_everything(seed)
+
+def load_yaml(file_name: str) -> Dict:
+    with open(file_name, "r") as stream:
+        config = yaml.load(stream, Loader=yaml.SafeLoader)
+    return Dict(config)
+
+def build_object(type: str, imported_module: str) -> object:
+    module = import_module(imported_module)
+    return getattr(module, type)
 
 def _dedup(names):
     seen = {}
@@ -66,21 +81,12 @@ def load_excel_tables(path, sheet_name=0, min_table_rows=2):
         if len(sub) < min_table_rows:
             continue
 
-        # Heuristic to pick header row inside this sub-block (same as your logic)
-        candidates = []
-        for i in range(len(sub)):
-            row = sub.iloc[i].astype(str).str.strip()
-            score = (
-                row.ne("").sum(),
-                -row.str.len().replace([np.inf, -np.inf], np.nan).fillna(0).mean()
-            )
-            candidates.append((score, i))
-        _, hdr_i = max(candidates)
-
+        # assume the first row is the header
         header = _dedup(
-            sub.iloc[hdr_i].astype(str).str.strip().replace("", "col").tolist()
+            sub.iloc[0].astype(str).str.strip().replace("", "col").tolist()
         )
-        df = sub.iloc[hdr_i+1:].copy()
+
+        df = sub.iloc[1:].copy()
         df.columns = header
 
         # Drop all-empty rows/cols and normalize index

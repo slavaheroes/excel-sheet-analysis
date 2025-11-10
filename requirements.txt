@@ -1,0 +1,17 @@
+notebook
+matplotlib
+tqdm
+pandas
+scikit-learn
+openpyxl==3.1.5
+nltk
+
+# Core dependencies
+transformers==4.44.2
+huggingface_hub==0.23.5
+lightning[extra]
+
+# Other required packages
+addict
+loguru
+tensorboard
